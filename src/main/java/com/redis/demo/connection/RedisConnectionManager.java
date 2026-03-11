@@ -23,12 +23,14 @@ public class RedisConnectionManager {
     private final MultiDbClient readerClient;
     private final String writerRegion;
     private final String readerRegion;
+    private final List<String> allEndpoints;
+    private final List<String> allRegions;
 
     public RedisConnectionManager(ConfigManager config) {
         this.config = config;
 
         List<String> endpoints = config.getRedisEndpoints();
-        logger.info("Initializing Redis connections with failover to endpoints: {}", endpoints);
+        this.allEndpoints = endpoints;
 
         // For Active-Active, create separate clients for writer and reader regions
         // Writer prefers first endpoint, Reader prefers second endpoint
@@ -39,6 +41,12 @@ public class RedisConnectionManager {
         this.readerClient = createMultiDbClient(endpoint2, endpoint1, false); // Reader prefers endpoint2
         this.writerRegion = extractRegion(endpoint1);
         this.readerRegion = extractRegion(endpoint2);
+
+        // Extract all regions
+        this.allRegions = endpoints.stream()
+                .map(this::extractRegion)
+                .distinct()
+                .toList();
 
         testConnections();
     }
@@ -52,8 +60,6 @@ public class RedisConnectionManager {
      */
     private MultiDbClient createMultiDbClient(String primaryEndpoint, String secondaryEndpoint, boolean isWriter) {
         String clientType = isWriter ? "Writer" : "Reader";
-        logger.info("Creating {} MultiDbClient - Primary: {}, Secondary: {}",
-                   clientType, extractRegion(primaryEndpoint), extractRegion(secondaryEndpoint));
 
         // Parse both endpoints
         EndpointInfo primary = parseEndpoint(primaryEndpoint);
@@ -192,9 +198,10 @@ public class RedisConnectionManager {
     
     private void testConnections() {
         try {
-            String writerPing = writerClient.ping();
-            String readerPing = readerClient.ping();
-            logger.info("Redis connections established successfully - Writer: {}, Reader: {}", writerPing, readerPing);
+            writerClient.ping();
+            readerClient.ping();
+            logger.info("✅ Connected to Redis Active-Active endpoints");
+            logger.info("   Writer region: {} | Reader region: {}", writerRegion, readerRegion);
         } catch (Exception e) {
             logger.error("Failed to establish Redis connections", e);
             throw new RuntimeException("Redis connection test failed", e);
@@ -215,6 +222,46 @@ public class RedisConnectionManager {
 
     public String getReaderRegion() {
         return readerRegion;
+    }
+
+    public List<String> getAllRegions() {
+        return allRegions;
+    }
+
+    /**
+     * Check if an endpoint is healthy by attempting a PING.
+     * @param region The region name to check
+     * @return true if healthy, false otherwise
+     */
+    public boolean isEndpointHealthy(String region) {
+        // Find the endpoint for this region
+        String endpoint = allEndpoints.stream()
+                .filter(ep -> extractRegion(ep).equals(region))
+                .findFirst()
+                .orElse(null);
+
+        if (endpoint == null) {
+            return false;
+        }
+
+        // Try to ping the endpoint directly
+        try {
+            EndpointInfo info = parseEndpoint(endpoint);
+            DefaultJedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
+                    .user(info.username)
+                    .password(info.password)
+                    .ssl(info.useSsl)
+                    .connectionTimeoutMillis(1000)
+                    .socketTimeoutMillis(1000)
+                    .build();
+
+            try (Jedis jedis = new Jedis(info.hostAndPort, clientConfig)) {
+                jedis.ping();
+                return true;
+            }
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**

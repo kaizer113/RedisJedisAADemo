@@ -6,11 +6,15 @@
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <!-- Default log level -->
+    <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 
-    <!-- Set Redis demo package to DEBUG for detailed logging -->
-    <logger name="com.redis.demo" level="DEBUG" />
+    <!-- Suppress verbose Jedis internal logging -->
+    <logger name="redis.clients.jedis" level="WARN" />
+
+    <!-- Keep only essential demo messages at INFO level -->
+    <logger name="com.redis.demo" level="INFO" />
 </configuration>
 

@@ -142,6 +142,17 @@ public class MetricsCollector implements Runnable {
         System.out.println("REPLICATION LAG METRICS - " + java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
         System.out.println("=".repeat(80));
 
+        // Show endpoint health status
+        if (connectionManager != null) {
+            System.out.println("REDIS ENDPOINTS:");
+            for (String region : connectionManager.getAllRegions()) {
+                boolean isHealthy = connectionManager.isEndpointHealthy(region);
+                String healthStatus = isHealthy ? "✅ HEALTHY" : "❌ UNHEALTHY";
+                System.out.printf("  %s: %s%n", region, healthStatus);
+            }
+            System.out.println("-".repeat(80));
+        }
+
         // Measure client latencies once
         double writerLatency = -1.0;
         double readerLatency = -1.0;
