@@ -289,12 +289,32 @@ public class RedisConnectionManager {
 
     public void close() {
         logger.info("Closing Redis connections");
+
+        // Wait for any in-flight health checks to complete
+        // Health check interval is typically 1000ms, so wait slightly longer
+        try {
+            Thread.sleep(config.getHealthCheckInterval() + 200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // Close clients - suppress any remaining exceptions from health check threads
         if (writerClient != null) {
-            writerClient.close();
+            try {
+                writerClient.close();
+            } catch (Exception e) {
+                // Suppress exceptions during shutdown
+            }
         }
         if (readerClient != null) {
-            readerClient.close();
+            try {
+                readerClient.close();
+            } catch (Exception e) {
+                // Suppress exceptions during shutdown
+            }
         }
+
+        logger.info("Redis connections closed");
     }
 }
 
