@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.UnifiedJedis;
 
+import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -15,6 +16,9 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class LatencyKeyWriter implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(LatencyKeyWriter.class);
+
+    // Session ID: seconds of current minute (0-59) to avoid reading stale keys from previous runs
+    private static final String SESSION_ID = String.valueOf(LocalDateTime.now().getSecond());
 
     private final UnifiedJedis jedis;
     private final ConfigManager config;
@@ -36,6 +40,8 @@ public class LatencyKeyWriter implements Runnable {
         // Timestamp format: "millis.nanos_" = ~21 bytes, so padding = total size - 21
         int paddingSize = Math.max(0, config.getValueSize() - 21);
         this.paddingString = generatePaddingString(paddingSize);
+
+        logger.info("LatencyKeyWriter initialized with session ID: {}", SESSION_ID);
     }
 
     public long getWriteCount() {
@@ -47,7 +53,8 @@ public class LatencyKeyWriter implements Runnable {
         while (running.get()) {
             try {
                 long currentCount = counter.incrementAndGet();
-                String key = config.getWriterKeyPrefix() + ":" + currentCount;
+                // Format: latency<SESSION_ID>:<counter>
+                String key = config.getWriterKeyPrefix() + SESSION_ID + ":" + currentCount;
 
                 // Create value with high-precision timestamp + pre-generated padding
                 String value = createValue();
