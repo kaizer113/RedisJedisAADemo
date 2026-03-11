@@ -1,0 +1,54 @@
+# Redis Endpoints (comma-separated for Active-Active failover)
+# Format: [username]:[password]@host:port,[username]:[password]@host:port
+redis.endpoints=localhost:6379,localhost:6379
+
+# Writer Configuration
+writer.interval.ms=1000
+writer.key.prefix=latency
+
+# Value size (total size including timestamp)
+# Timestamp format: "millis.nanos_" = ~21 bytes
+# Actual padding size = value.size - 21
+value.size=500
+
+# Metrics Configuration
+metrics.interval.seconds=15
+
+# Background Load Configuration
+background.load.enabled=true
+background.load.threads=10
+background.load.read.write.ratio=100
+
+# TTL Configuration
+key.ttl.seconds=300
+
+# Connection Pool Configuration
+redis.pool.max.total=500
+redis.pool.max.idle=100
+redis.pool.min.idle=20
+
+# ================================================================================
+# Failover Configuration (MultiDbClient)
+# ================================================================================
+
+# Circuit Breaker - Sliding window size in seconds
+failover.circuit.breaker.sliding.window.size=2
+
+# Circuit Breaker - Minimum number of failures before circuit breaker trips
+failover.circuit.breaker.min.num.failures=1000
+
+# Retry - Maximum number of retry attempts (including initial call)
+failover.retry.max.attempts=3
+
+# Failover - Delay in milliseconds between failover attempts
+failover.delay.between.attempts=12000
+
+# Failover - Retry failed commands during failover (true/false)
+failover.retry.on.failover=false
+
+# Failback - Check interval in milliseconds to detect recovery
+failover.failback.check.interval=120000
+
+# Health Check - Interval in milliseconds between health checks
+failover.health.check.interval=1000
+

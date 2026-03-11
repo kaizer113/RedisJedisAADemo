@@ -3,7 +3,7 @@ package com.redis.demo.threads;
 import com.redis.demo.config.ConfigManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.UnifiedJedis;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -16,24 +16,30 @@ import java.util.concurrent.atomic.AtomicLong;
 public class LatencyKeyWriter implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(LatencyKeyWriter.class);
 
-    private final JedisPooled jedis;
+    private final UnifiedJedis jedis;
     private final ConfigManager config;
     private final AtomicBoolean running;
     private final AtomicLong counter;
     private final ConcurrentLinkedQueue<String> pendingKeys;
     private final String paddingString;
+    private final AtomicLong writeCount; // Track total writes for ops/sec calculation
 
-    public LatencyKeyWriter(JedisPooled jedis, ConfigManager config, ConcurrentLinkedQueue<String> pendingKeys) {
+    public LatencyKeyWriter(UnifiedJedis jedis, ConfigManager config, ConcurrentLinkedQueue<String> pendingKeys) {
         this.jedis = jedis;
         this.config = config;
         this.running = new AtomicBoolean(true);
         this.counter = new AtomicLong(0);
         this.pendingKeys = pendingKeys;
+        this.writeCount = new AtomicLong(0);
 
         // Pre-generate padding string once (much more efficient than generating each time)
         // Timestamp format: "millis.nanos_" = ~21 bytes, so padding = total size - 21
         int paddingSize = Math.max(0, config.getValueSize() - 21);
         this.paddingString = generatePaddingString(paddingSize);
+    }
+
+    public long getWriteCount() {
+        return writeCount.get();
     }
     
     @Override
@@ -48,6 +54,7 @@ public class LatencyKeyWriter implements Runnable {
 
                 // Set key with TTL
                 jedis.setex(key, config.getKeyTtlSeconds(), value);
+                writeCount.incrementAndGet(); // Track write count
 
                 // Add key to pending queue for reader to process
                 pendingKeys.offer(key);

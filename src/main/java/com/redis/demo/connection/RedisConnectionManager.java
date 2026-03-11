@@ -1,25 +1,26 @@
 package com.redis.demo.connection;
 
 import com.redis.demo.config.ConfigManager;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.JedisPooled;
-import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.*;
+import redis.clients.jedis.MultiDbClient;
+import redis.clients.jedis.MultiDbConfig;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
- * Manages Redis connections using JedisPooled.
- * Designed to be easily migrated to JedisCluster for Redis Cloud Active-Active.
+ * Manages Redis connections using MultiDbClient for automatic failover.
+ * Supports Active-Active replication with circuit breaker and health checks.
  */
 public class RedisConnectionManager {
     private static final Logger logger = LoggerFactory.getLogger(RedisConnectionManager.class);
-    
+
     private final ConfigManager config;
-    private final JedisPooled writerClient;
-    private final JedisPooled readerClient;
+    private final MultiDbClient writerClient;
+    private final MultiDbClient readerClient;
     private final String writerRegion;
     private final String readerRegion;
 
@@ -27,22 +28,124 @@ public class RedisConnectionManager {
         this.config = config;
 
         List<String> endpoints = config.getRedisEndpoints();
-        logger.info("Initializing Redis connections to endpoints: {}", endpoints);
+        logger.info("Initializing Redis connections with failover to endpoints: {}", endpoints);
 
-        // For now, both clients connect to the same endpoints
-        // In production with Redis Cloud Active-Active, these would be different regional endpoints
-        String writerEndpoint = endpoints.get(0);
-        String readerEndpoint = endpoints.size() > 1 ? endpoints.get(1) : endpoints.get(0);
+        // For Active-Active, create separate clients for writer and reader regions
+        // Writer prefers first endpoint, Reader prefers second endpoint
+        String endpoint1 = endpoints.get(0);
+        String endpoint2 = endpoints.size() > 1 ? endpoints.get(1) : endpoints.get(0);
 
-        this.writerClient = createJedisPooled(writerEndpoint);
-        this.readerClient = createJedisPooled(readerEndpoint);
-        this.writerRegion = extractRegion(writerEndpoint);
-        this.readerRegion = extractRegion(readerEndpoint);
+        this.writerClient = createMultiDbClient(endpoint1, endpoint2, true);  // Writer prefers endpoint1
+        this.readerClient = createMultiDbClient(endpoint2, endpoint1, false); // Reader prefers endpoint2
+        this.writerRegion = extractRegion(endpoint1);
+        this.readerRegion = extractRegion(endpoint2);
 
         testConnections();
     }
-    
-    private JedisPooled createJedisPooled(String endpoint) {
+
+    /**
+     * Creates a MultiDbClient with failover support.
+     * @param primaryEndpoint The preferred endpoint (higher weight)
+     * @param secondaryEndpoint The backup endpoint (lower weight)
+     * @param isWriter Whether this is for the writer client (affects logging)
+     * @return Configured MultiDbClient
+     */
+    private MultiDbClient createMultiDbClient(String primaryEndpoint, String secondaryEndpoint, boolean isWriter) {
+        String clientType = isWriter ? "Writer" : "Reader";
+        logger.info("Creating {} MultiDbClient - Primary: {}, Secondary: {}",
+                   clientType, extractRegion(primaryEndpoint), extractRegion(secondaryEndpoint));
+
+        // Parse both endpoints
+        EndpointInfo primary = parseEndpoint(primaryEndpoint);
+        EndpointInfo secondary = parseEndpoint(secondaryEndpoint);
+
+        // Build client configuration
+        JedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
+                .connectionTimeoutMillis(10000)
+                .socketTimeoutMillis(10000)
+                .ssl(primary.useSsl)
+                .user(primary.username)
+                .password(primary.password)
+                .build();
+
+        // Build connection pool configuration
+        GenericObjectPoolConfig<Connection> poolConfig = new GenericObjectPoolConfig<>();
+        poolConfig.setMaxTotal(config.getPoolMaxTotal());
+        poolConfig.setMaxIdle(config.getPoolMaxIdle());
+        poolConfig.setMinIdle(config.getPoolMinIdle());
+        poolConfig.setBlockWhenExhausted(true);
+        poolConfig.setMaxWait(Duration.ofSeconds(1));
+        poolConfig.setTestWhileIdle(true);
+        poolConfig.setTimeBetweenEvictionRuns(Duration.ofSeconds(1));
+
+        // Build MultiDbConfig with failover settings
+        MultiDbConfig.Builder multiConfigBuilder = MultiDbConfig.builder()
+                // Primary endpoint (higher weight = preferred)
+                .database(MultiDbConfig.DatabaseConfig.builder(primary.hostAndPort, clientConfig)
+                        .connectionPoolConfig(poolConfig)
+                        .weight(1.0f)
+                        .build())
+                // Secondary endpoint (lower weight = backup)
+                .database(MultiDbConfig.DatabaseConfig.builder(secondary.hostAndPort, clientConfig)
+                        .connectionPoolConfig(poolConfig)
+                        .weight(0.5f)
+                        .build())
+                // Circuit breaker configuration
+                .failureDetector(MultiDbConfig.CircuitBreakerConfig.builder()
+                        .slidingWindowSize(config.getCircuitBreakerSlidingWindowSize())
+                        .minNumOfFailures(config.getCircuitBreakerMinNumFailures())
+                        .failureRateThreshold(config.getCircuitBreakerFailureRateThreshold())
+                        .build())
+                // Retry configuration
+                .commandRetry(MultiDbConfig.RetryConfig.builder()
+                        .maxAttempts(config.getRetryMaxAttempts())
+                        .waitDuration(config.getRetryWaitDuration())
+                        .exponentialBackoffMultiplier(config.getRetryExponentialBackoffMultiplier())
+                        .build())
+                // General failover configuration
+                .maxNumFailoverAttempts(config.getMaxNumFailoverAttempts())
+                .delayInBetweenFailoverAttempts(config.getDelayBetweenFailoverAttempts())
+                .gracePeriod(config.getGracePeriod())
+                .fastFailover(config.isFastFailover())
+                .retryOnFailover(config.isRetryOnFailover())
+                // Failback configuration
+                .failbackSupported(config.isFailbackSupported())
+                .failbackCheckInterval(config.getFailbackCheckInterval());
+
+        // Build and return MultiDbClient with failover callback
+        return MultiDbClient.builder()
+                .multiDbConfig(multiConfigBuilder.build())
+                .databaseSwitchListener(event -> {
+                    logger.warn("⚠️  FAILOVER EVENT - {} switched to: {} - Reason: {}",
+                               clientType,
+                               event.getEndpoint(),
+                               event.getReason());
+                })
+                .build();
+    }
+
+    /**
+     * Helper class to hold parsed endpoint information
+     */
+    private static class EndpointInfo {
+        final HostAndPort hostAndPort;
+        final String username;
+        final String password;
+        final boolean useSsl;
+
+        EndpointInfo(HostAndPort hostAndPort, String username, String password, boolean useSsl) {
+            this.hostAndPort = hostAndPort;
+            this.username = username;
+            this.password = password;
+            this.useSsl = useSsl;
+        }
+    }
+
+    /**
+     * Parse endpoint string into EndpointInfo
+     * Format: [username:password@]host:port
+     */
+    private EndpointInfo parseEndpoint(String endpoint) {
         String username = null;
         String password = null;
         String host;
@@ -84,41 +187,7 @@ public class RedisConnectionManager {
             }
         }
 
-        JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxTotal(config.getPoolMaxTotal());
-        poolConfig.setMaxIdle(config.getPoolMaxIdle());
-        poolConfig.setMinIdle(config.getPoolMinIdle());
-        poolConfig.setTestOnBorrow(true);
-        poolConfig.setTestOnReturn(true);
-        poolConfig.setTestWhileIdle(true);
-
-        logger.info("Creating JedisPooled connection to {}:{} (SSL: {}, Auth: {})",
-                   host, port, useSsl, password != null ? "yes" : "no");
-
-        // Build client configuration
-        DefaultJedisClientConfig.Builder configBuilder = DefaultJedisClientConfig.builder()
-                .connectionTimeoutMillis(10000)
-                .socketTimeoutMillis(10000);
-
-        // Add SSL if needed
-        if (useSsl) {
-            configBuilder.ssl(true);
-        }
-
-        // Add authentication if provided
-        if (password != null) {
-            if (username != null) {
-                configBuilder.user(username).password(password);
-            } else {
-                configBuilder.password(password);
-            }
-        }
-
-        DefaultJedisClientConfig clientConfig = configBuilder.build();
-        HostAndPort hostAndPort = new HostAndPort(host, port);
-
-        // JedisPooled constructor: (hostAndPort, clientConfig)
-        return new JedisPooled(hostAndPort, clientConfig);
+        return new EndpointInfo(new HostAndPort(host, port), username, password, useSsl);
     }
     
     private void testConnections() {
@@ -132,11 +201,11 @@ public class RedisConnectionManager {
         }
     }
     
-    public JedisPooled getWriterClient() {
+    public MultiDbClient getWriterClient() {
         return writerClient;
     }
 
-    public JedisPooled getReaderClient() {
+    public MultiDbClient getReaderClient() {
         return readerClient;
     }
 
@@ -164,7 +233,7 @@ public class RedisConnectionManager {
         return measureLatency(readerClient);
     }
 
-    private double measureLatency(JedisPooled client) {
+    private double measureLatency(MultiDbClient client) {
         try {
             // Measure round-trip time for PING command (average of 3 samples)
             long totalNanos = 0;

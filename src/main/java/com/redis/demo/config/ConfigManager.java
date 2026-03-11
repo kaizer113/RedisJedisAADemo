@@ -81,6 +81,10 @@ public class ConfigManager {
         return Boolean.parseBoolean(properties.getProperty("background.load.enabled", "true"));
     }
 
+    public int getBackgroundLoadThreads() {
+        return Integer.parseInt(properties.getProperty("background.load.threads", "10"));
+    }
+
     public int getBackgroundLoadReadWriteRatio() {
         return Integer.parseInt(properties.getProperty("background.load.read.write.ratio", "10"));
     }
@@ -99,6 +103,83 @@ public class ConfigManager {
     
     public int getPoolMinIdle() {
         return Integer.parseInt(properties.getProperty("redis.pool.min.idle", "5"));
+    }
+
+    // ================================================================================
+    // Failover Configuration Getters
+    // ================================================================================
+
+    // Circuit Breaker Configuration
+    public int getCircuitBreakerSlidingWindowSize() {
+        return Integer.parseInt(properties.getProperty("failover.circuit.breaker.sliding.window.size", "2"));
+    }
+
+    public int getCircuitBreakerMinNumFailures() {
+        return Integer.parseInt(properties.getProperty("failover.circuit.breaker.min.num.failures", "1000"));
+    }
+
+    public float getCircuitBreakerFailureRateThreshold() {
+        return Float.parseFloat(properties.getProperty("failover.circuit.breaker.failure.rate.threshold", "10.0"));
+    }
+
+    // Retry Configuration
+    public int getRetryMaxAttempts() {
+        return Integer.parseInt(properties.getProperty("failover.retry.max.attempts", "3"));
+    }
+
+    public int getRetryWaitDuration() {
+        return Integer.parseInt(properties.getProperty("failover.retry.wait.duration", "500"));
+    }
+
+    public int getRetryExponentialBackoffMultiplier() {
+        return Integer.parseInt(properties.getProperty("failover.retry.exponential.backoff.multiplier", "2"));
+    }
+
+    // General Failover Configuration
+    public int getMaxNumFailoverAttempts() {
+        return Integer.parseInt(properties.getProperty("failover.max.num.failover.attempts", "10"));
+    }
+
+    public int getDelayBetweenFailoverAttempts() {
+        return Integer.parseInt(properties.getProperty("failover.delay.between.attempts", "12000"));
+    }
+
+    public int getGracePeriod() {
+        return Integer.parseInt(properties.getProperty("failover.grace.period", "60000"));
+    }
+
+    public boolean isFastFailover() {
+        return Boolean.parseBoolean(properties.getProperty("failover.fast.failover", "false"));
+    }
+
+    public boolean isRetryOnFailover() {
+        return Boolean.parseBoolean(properties.getProperty("failover.retry.on.failover", "false"));
+    }
+
+    // Failback Configuration
+    public boolean isFailbackSupported() {
+        return Boolean.parseBoolean(properties.getProperty("failover.failback.supported", "true"));
+    }
+
+    public int getFailbackCheckInterval() {
+        return Integer.parseInt(properties.getProperty("failover.failback.check.interval", "120000"));
+    }
+
+    // Health Check Configuration
+    public int getHealthCheckInterval() {
+        return Integer.parseInt(properties.getProperty("failover.health.check.interval", "1000"));
+    }
+
+    public int getHealthCheckTimeout() {
+        return Integer.parseInt(properties.getProperty("failover.health.check.timeout", "1000"));
+    }
+
+    public int getHealthCheckNumProbes() {
+        return Integer.parseInt(properties.getProperty("failover.health.check.num.probes", "3"));
+    }
+
+    public int getHealthCheckDelayBetweenProbes() {
+        return Integer.parseInt(properties.getProperty("failover.health.check.delay.between.probes", "100"));
     }
 }
 

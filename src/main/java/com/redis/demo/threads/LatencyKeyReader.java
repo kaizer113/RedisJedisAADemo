@@ -4,12 +4,13 @@ import com.redis.demo.config.ConfigManager;
 import com.redis.demo.metrics.MetricsCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.UnifiedJedis;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Reader thread that processes latency keys from a shared queue and calculates replication lag.
@@ -20,14 +21,15 @@ public class LatencyKeyReader implements Runnable {
 
     private static final int MAX_BATCH_SIZE = 100; // Maximum keys to fetch in one MGET
 
-    private final JedisPooled jedis;
+    private final UnifiedJedis jedis;
     private final ConfigManager config;
     private final MetricsCollector metricsCollector;
     private final AtomicBoolean running;
     private final ConcurrentLinkedQueue<String> pendingKeys;
     private long processedCount;
+    private final AtomicLong readCount; // Track total reads for ops/sec calculation
 
-    public LatencyKeyReader(JedisPooled jedis, ConfigManager config, MetricsCollector metricsCollector,
+    public LatencyKeyReader(UnifiedJedis jedis, ConfigManager config, MetricsCollector metricsCollector,
                            ConcurrentLinkedQueue<String> pendingKeys) {
         this.jedis = jedis;
         this.config = config;
@@ -35,6 +37,11 @@ public class LatencyKeyReader implements Runnable {
         this.running = new AtomicBoolean(true);
         this.pendingKeys = pendingKeys;
         this.processedCount = 0;
+        this.readCount = new AtomicLong(0);
+    }
+
+    public long getReadCount() {
+        return readCount.get();
     }
     
     @Override
@@ -58,6 +65,9 @@ public class LatencyKeyReader implements Runnable {
                     // Use MGET to fetch all keys in a single request
                     String[] keyArray = keysToCheck.toArray(new String[0]);
                     List<String> values = jedis.mget(keyArray);
+
+                    // Track read count (MGET counts as reading multiple keys)
+                    readCount.addAndGet(keyArray.length);
 
                     // Process results
                     List<String> notFoundKeys = new ArrayList<>();

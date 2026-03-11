@@ -3,7 +3,7 @@ package com.redis.demo.threads;
 import com.redis.demo.config.ConfigManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.UnifiedJedis;
 
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class BackgroundLoadGenerator implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(BackgroundLoadGenerator.class);
 
-    private final JedisPooled jedis;
+    private final UnifiedJedis jedis;
     private final ConfigManager config;
     private final AtomicBoolean running;
     private final Random random;
@@ -29,7 +29,7 @@ public class BackgroundLoadGenerator implements Runnable {
     private static final int KEY_RANGE = 1000; // Smaller range for better cache hit rate
     private final AtomicLong writeCounter; // Counter for sequential key writes
 
-    public BackgroundLoadGenerator(JedisPooled jedis, ConfigManager config) {
+    public BackgroundLoadGenerator(UnifiedJedis jedis, ConfigManager config) {
         this.jedis = jedis;
         this.config = config;
         this.running = new AtomicBoolean(true);
@@ -89,13 +89,23 @@ public class BackgroundLoadGenerator implements Runnable {
 
     private void performWrite() {
         try {
-            // Sequential key writes for predictable key distribution
-            long keyNumber = writeCounter.incrementAndGet() % KEY_RANGE;
-            String key = KEY_PREFIX + ":" + keyNumber;
+            // Use pipeline to send 2 writes in one network round trip
+            var pipeline = jedis.pipelined();
 
-            // Reuse pre-generated static value (no overhead)
-            jedis.setex(key, config.getKeyTtlSeconds(), staticValue);
-            writeCount.incrementAndGet();
+            // Write 1
+            long keyNumber1 = writeCounter.incrementAndGet() % KEY_RANGE;
+            String key1 = KEY_PREFIX + ":" + keyNumber1;
+            pipeline.setex(key1, config.getKeyTtlSeconds(), staticValue);
+
+            // Write 2
+            long keyNumber2 = writeCounter.incrementAndGet() % KEY_RANGE;
+            String key2 = KEY_PREFIX + ":" + keyNumber2;
+            pipeline.setex(key2, config.getKeyTtlSeconds(), staticValue);
+
+            // Execute both writes in one network round trip
+            pipeline.sync();
+
+            writeCount.addAndGet(2); // Increment by 2 since we did 2 writes
         } catch (Exception e) {
             logger.debug("Error performing write", e);
         }

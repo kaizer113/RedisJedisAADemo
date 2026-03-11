@@ -7,8 +7,18 @@ echo "Redis Active-Active Replication Demo"
 echo "=========================================="
 echo ""
 
-# Build the project if needed
-if [ ! -f "target/jedis-active-active-1.0.0.jar" ]; then
+# Check for rebuild argument
+if [ "$1" == "rebuild" ]; then
+    echo "Rebuilding project..."
+    mvn clean package -q
+    if [ $? -ne 0 ]; then
+        echo "❌ Build failed"
+        exit 1
+    fi
+    echo "✅ Build successful"
+    echo ""
+# Build the project if JAR doesn't exist
+elif [ ! -f "target/jedis-active-active-1.0.0.jar" ]; then
     echo "Building project..."
     mvn clean package -q
     if [ $? -ne 0 ]; then

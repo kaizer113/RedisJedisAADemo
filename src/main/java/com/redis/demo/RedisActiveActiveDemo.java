@@ -9,6 +9,7 @@ import com.redis.demo.threads.LatencyKeyWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -27,11 +28,11 @@ public class RedisActiveActiveDemo {
     private Thread writerThread;
     private Thread readerThread;
     private Thread metricsThread;
-    private Thread backgroundLoadThread;
+    private List<Thread> backgroundLoadThreads;
 
     private LatencyKeyWriter writer;
     private LatencyKeyReader reader;
-    private BackgroundLoadGenerator backgroundLoad;
+    private List<BackgroundLoadGenerator> backgroundLoadGenerators;
 
     public RedisActiveActiveDemo() {
         this.config = new ConfigManager();
@@ -60,14 +61,28 @@ public class RedisActiveActiveDemo {
         readerThread = new Thread(reader, "LatencyKeyReader");
         readerThread.start();
 
-        // Start background load generator if enabled
-        if (config.isBackgroundLoadEnabled()) {
-            backgroundLoad = new BackgroundLoadGenerator(connectionManager.getWriterClient(), config);
-            backgroundLoadThread = new Thread(backgroundLoad, "BackgroundLoadGenerator");
-            backgroundLoadThread.start();
+        // Connect writer and reader to metrics collector for ops/sec tracking
+        metricsCollector.setLatencyKeyWriter(writer);
+        metricsCollector.setLatencyKeyReader(reader);
 
-            // Connect background load to metrics collector
-            metricsCollector.setBackgroundLoadGenerator(backgroundLoad);
+        // Start background load generators if enabled
+        if (config.isBackgroundLoadEnabled()) {
+            int numThreads = config.getBackgroundLoadThreads();
+            backgroundLoadGenerators = new ArrayList<>();
+            backgroundLoadThreads = new ArrayList<>();
+
+            for (int i = 0; i < numThreads; i++) {
+                BackgroundLoadGenerator generator = new BackgroundLoadGenerator(
+                    connectionManager.getWriterClient(), config);
+                Thread thread = new Thread(generator, "BackgroundLoadGenerator-" + i);
+
+                backgroundLoadGenerators.add(generator);
+                backgroundLoadThreads.add(thread);
+                thread.start();
+            }
+
+            // Connect background load generators to metrics collector
+            metricsCollector.setBackgroundLoadGenerators(backgroundLoadGenerators);
         }
 
         // Add shutdown hook
@@ -132,16 +147,22 @@ public class RedisActiveActiveDemo {
         if (metricsCollector != null) {
             metricsCollector.stop();
         }
-        if (backgroundLoad != null) {
-            backgroundLoad.stop();
+        if (backgroundLoadGenerators != null) {
+            for (BackgroundLoadGenerator generator : backgroundLoadGenerators) {
+                generator.stop();
+            }
         }
-        
+
         // Wait for threads to finish
         try {
             if (writerThread != null) writerThread.join(5000);
             if (readerThread != null) readerThread.join(5000);
             if (metricsThread != null) metricsThread.join(5000);
-            if (backgroundLoadThread != null) backgroundLoadThread.join(5000);
+            if (backgroundLoadThreads != null) {
+                for (Thread thread : backgroundLoadThreads) {
+                    thread.join(5000);
+                }
+            }
         } catch (InterruptedException e) {
             logger.warn("Interrupted while waiting for threads to finish", e);
             Thread.currentThread().interrupt();

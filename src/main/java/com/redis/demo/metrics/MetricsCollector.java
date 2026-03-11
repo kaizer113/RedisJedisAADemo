@@ -2,6 +2,8 @@ package com.redis.demo.metrics;
 
 import com.redis.demo.connection.RedisConnectionManager;
 import com.redis.demo.threads.BackgroundLoadGenerator;
+import com.redis.demo.threads.LatencyKeyReader;
+import com.redis.demo.threads.LatencyKeyWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,11 +22,15 @@ public class MetricsCollector implements Runnable {
     private final int intervalSeconds;
     private final AtomicBoolean running;
     private final ConcurrentLinkedQueue<LatencyMeasurement> measurements;
-    private BackgroundLoadGenerator backgroundLoad;
+    private List<BackgroundLoadGenerator> backgroundLoadGenerators;
     private RedisConnectionManager connectionManager;
+    private LatencyKeyWriter latencyKeyWriter;
+    private LatencyKeyReader latencyKeyReader;
 
     private long lastReadCount = 0;
     private long lastWriteCount = 0;
+    private long lastLatencyReaderCount = 0;
+    private long lastLatencyWriterCount = 0;
 
     public MetricsCollector(int intervalSeconds) {
         this.intervalSeconds = intervalSeconds;
@@ -32,12 +38,20 @@ public class MetricsCollector implements Runnable {
         this.measurements = new ConcurrentLinkedQueue<>();
     }
 
-    public void setBackgroundLoadGenerator(BackgroundLoadGenerator backgroundLoad) {
-        this.backgroundLoad = backgroundLoad;
+    public void setBackgroundLoadGenerators(List<BackgroundLoadGenerator> generators) {
+        this.backgroundLoadGenerators = generators;
     }
 
     public void setConnectionManager(RedisConnectionManager connectionManager) {
         this.connectionManager = connectionManager;
+    }
+
+    public void setLatencyKeyWriter(LatencyKeyWriter writer) {
+        this.latencyKeyWriter = writer;
+    }
+
+    public void setLatencyKeyReader(LatencyKeyReader reader) {
+        this.latencyKeyReader = reader;
     }
     
     public void recordLatency(String key, long latencyMs) {
@@ -162,20 +176,47 @@ public class MetricsCollector implements Runnable {
                             estimatedTrueReplicationLag);
         }
 
+        // Display latency key reader/writer statistics
+        if (latencyKeyReader != null || latencyKeyWriter != null) {
+            System.out.println("-".repeat(80));
+            System.out.println("LATENCY MEASUREMENT THREAD STATISTICS");
+            System.out.println("-".repeat(80));
+
+            if (latencyKeyWriter != null) {
+                long currentWriterCount = latencyKeyWriter.getWriteCount();
+                long writerDelta = currentWriterCount - lastLatencyWriterCount;
+                System.out.printf("Latency Writer:  %.1f writes/sec%n",
+                                (double) writerDelta / intervalSeconds);
+                lastLatencyWriterCount = currentWriterCount;
+            }
+
+            if (latencyKeyReader != null) {
+                long currentReaderCount = latencyKeyReader.getReadCount();
+                long readerDelta = currentReaderCount - lastLatencyReaderCount;
+                System.out.printf("Latency Reader:  %.1f reads/sec%n",
+                                (double) readerDelta / intervalSeconds);
+                lastLatencyReaderCount = currentReaderCount;
+            }
+        }
+
         // Display background load statistics if available
-        if (backgroundLoad != null) {
-            long currentReads = backgroundLoad.getReadCount();
-            long currentWrites = backgroundLoad.getWriteCount();
+        if (backgroundLoadGenerators != null && !backgroundLoadGenerators.isEmpty()) {
+            // Aggregate stats from all background load generators
+            long currentReads = 0;
+            long currentWrites = 0;
+            for (BackgroundLoadGenerator generator : backgroundLoadGenerators) {
+                currentReads += generator.getReadCount();
+                currentWrites += generator.getWriteCount();
+            }
+
             long readsDelta = currentReads - lastReadCount;
             long writesDelta = currentWrites - lastWriteCount;
 
             System.out.println("-".repeat(80));
             System.out.println("BACKGROUND LOAD STATISTICS");
             System.out.println("-".repeat(80));
-            System.out.printf("Total Reads:     %,d%n",
-                            currentReads);
-            System.out.printf("Total Writes:    %,d%n",
-                            currentWrites);
+            System.out.printf("Total Reads:     %,d%n", currentReads);
+            System.out.printf("Total Writes:    %,d%n", currentWrites);
             System.out.printf("Reads:       %.1f/sec%n", (double) readsDelta / intervalSeconds);
             System.out.printf("Writes:      %.1f/sec%n", (double) writesDelta / intervalSeconds);
             System.out.printf("Total ops:   %.1f/sec%n",
