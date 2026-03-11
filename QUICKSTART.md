@@ -76,7 +76,7 @@ The application will start and display:
   REDIS ACTIVE-ACTIVE REPLICATION DEMO
 ================================================================================
 Configuration:
-  Redis Endpoints:     [localhost:6379, localhost:6379]
+  Redis Endpoints:     [redis-xxxxx.us-east-1.ec2.redns.redis-cloud.com:12000, redis-xxxxx.us-east-2.ec2.redns.redis-cloud.com:12000]
   Writer Interval:     1000 ms
   Metrics Interval:    10 seconds
   Background Load:     ENABLED

@@ -58,8 +58,6 @@ mvn clean package
 java -jar target/jedis-active-active-1.0.0.jar
 ```
 
-**Note**: Redis must be running on localhost:6379
-
 ## Files Created
 
 ### Application Code (7 Java files)
@@ -126,7 +124,7 @@ redis-cli ping
   REDIS ACTIVE-ACTIVE REPLICATION DEMO
 ================================================================================
 Configuration:
-  Redis Endpoints:     [localhost:6379, localhost:6379]
+  Redis Endpoints:     [redis-xxxxx.us-east-1.ec2.redns.redis-cloud.com:12000, redis-xxxxx.us-east-2.ec2.redns.redis-cloud.com:12000]
   Writer Interval:     1000 ms
   Metrics Interval:    10 seconds
   Background Load:     ENABLED
@@ -239,14 +237,14 @@ After changes: `mvn clean package`
 ✅ Easy configuration  
 ✅ Clear documentation  
 
-## Known Limitations (Expected)
+## Configuration Notes
 
-1. **Localhost Setup**: Both endpoints currently point to localhost:6379
-   - Replication lag will be near-zero (just processing time)
-   - This is correct for development phase
-   - Will show real lag when connected to Redis Cloud
+1. **Redis Cloud Setup**: Configure your Redis Cloud Active-Active endpoints in `redis.properties`
+   - Update endpoints with your actual Redis Cloud URLs
+   - Replication lag will reflect actual cross-region performance
+   - Network overhead will be measured and displayed separately
 
-2. **No Authentication**: Currently no Redis password
+2. **Authentication**: Configure Redis credentials in `redis.properties`
    - Easy to add when needed for Redis Cloud
    - See DEPLOYMENT.md for instructions
 

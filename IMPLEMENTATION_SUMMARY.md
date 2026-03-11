@@ -97,7 +97,7 @@ java -jar target/jedis-active-active-1.0.0.jar
   REDIS ACTIVE-ACTIVE REPLICATION DEMO
 ================================================================================
 Configuration:
-  Redis Endpoints:     [localhost:6379, localhost:6379]
+  Redis Endpoints:     [redis-xxxxx.us-east-1.ec2.redns.redis-cloud.com:12000, redis-xxxxx.us-east-2.ec2.redns.redis-cloud.com:12000]
   Writer Interval:     1000 ms
   Metrics Interval:    10 seconds
   Background Load:     ENABLED
@@ -122,8 +122,8 @@ Min Lag:         1 ms
 All settings in `src/main/resources/redis.properties`:
 
 ```properties
-# Redis endpoints (currently both localhost for development)
-redis.endpoints=localhost:6379,localhost:6379
+# Redis endpoints (Redis Cloud Active-Active)
+redis.endpoints=redis-xxxxx.us-east-1.ec2.redns.redis-cloud.com:12000,redis-xxxxx.us-east-2.ec2.redns.redis-cloud.com:12000
 
 # Writer: 1 key per second
 writer.interval.ms=1000
@@ -183,14 +183,9 @@ When ready to use Redis Cloud:
 - [ ] Failover tested
 - [ ] Failback tested
 
-## Known Limitations
+## Implementation Notes
 
-1. **Current Setup**: Both endpoints point to localhost:6379
-   - No actual replication lag to measure
-   - Lag will be near-zero (just processing time)
-   - This is expected for development phase
-
-2. **JedisPooled vs JedisCluster**:
+1. **JedisPooled vs JedisCluster**:
    - Currently using JedisPooled for simplicity
    - Will work with Redis Cloud Active-Active endpoints
    - JedisCluster can be added later if needed

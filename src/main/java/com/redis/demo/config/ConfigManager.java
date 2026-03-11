@@ -54,7 +54,10 @@ public class ConfigManager {
     }
     
     public List<String> getRedisEndpoints() {
-        String endpoints = properties.getProperty("redis.endpoints", "localhost:6379");
+        String endpoints = properties.getProperty("redis.endpoints");
+        if (endpoints == null || endpoints.trim().isEmpty()) {
+            throw new RuntimeException("redis.endpoints must be configured in redis.properties");
+        }
         return Arrays.asList(endpoints.split(","));
     }
     

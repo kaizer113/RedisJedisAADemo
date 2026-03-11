@@ -91,11 +91,11 @@ This demo measures cross-region replication performance and helps understand the
 ## Implementation Phases
 
 ### Phase 1: Project Setup & Basic Connection
-- [ ] Create Maven project structure
-- [ ] Add Jedis dependency
-- [ ] Create configuration management (properties file)
-- [ ] Implement basic Redis connection using JedisCluster
-- [ ] Test connection to localhost:6379
+- [x] Create Maven project structure
+- [x] Add Jedis dependency
+- [x] Create configuration management (properties file)
+- [x] Implement basic Redis connection using JedisPooled
+- [x] Test connection to Redis Cloud Active-Active endpoints
 
 ### Phase 2: Core Latency Measurement
 - [ ] Implement latency key writer thread
