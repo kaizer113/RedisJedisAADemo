@@ -122,13 +122,11 @@ public class RedisActiveActiveDemo {
         String sampleValue = sampleMillis + "." + sampleNanos + "_" + samplePadding;
         System.out.println("  Sample Value:        " + sampleValue);
 
-        // Calculate total threads: 3 core threads + background load threads (if enabled)
-        int totalThreads = 3; // MetricsCollector, LatencyKeyWriter, LatencyKeyReader
+        // Show background load configuration if enabled
         if (config.isBackgroundLoadEnabled()) {
-            totalThreads += config.getBackgroundLoadThreads();
             System.out.println("  Read/Write Ratio:    " + config.getBackgroundLoadReadWriteRatio() + ":1");
+            System.out.println("  Threads:             " + config.getBackgroundLoadThreads());
         }
-        System.out.println("  Threads:             " + totalThreads);
         System.out.println("  Key TTL:             " + config.getKeyTtlSeconds() + " seconds");
         System.out.println("=".repeat(80));
         System.out.println("Press Ctrl+C to stop the demo\n");
