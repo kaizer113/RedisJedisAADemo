@@ -340,7 +340,7 @@ public class RedisConnectionManager {
         // Wait for any in-flight health checks to complete
         // Health check interval is typically 1000ms, so wait slightly longer
         try {
-            Thread.sleep(config.getHealthCheckInterval() + 200);
+            Thread.sleep(config.getHealthCheckInterval() + 500);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

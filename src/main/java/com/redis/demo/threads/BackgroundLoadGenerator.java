@@ -77,11 +77,23 @@ public class BackgroundLoadGenerator implements Runnable {
     
     private void performRead() {
         try {
-            // Read from existing keys using modulo to ensure high cache hit rate
-            long keyNumber = writeCounter.get() % KEY_RANGE;
-            String key = KEY_PREFIX + ":" + keyNumber;
-            jedis.get(key);
-            readCount.incrementAndGet();
+            // Use pipeline to send 2 reads in one network round trip
+            var pipeline = jedis.pipelined();
+
+            // Read 1
+            long keyNumber1 = writeCounter.get() % KEY_RANGE;
+            String key1 = KEY_PREFIX + ":" + keyNumber1;
+            pipeline.get(key1);
+
+            // Read 2 - different key (keyNumber + 1)
+            long keyNumber2 = (writeCounter.get() + 1) % KEY_RANGE;
+            String key2 = KEY_PREFIX + ":" + keyNumber2;
+            pipeline.get(key2);
+
+            // Execute both reads in one network round trip
+            pipeline.sync();
+
+            readCount.addAndGet(2); // Increment by 2 since we did 2 reads
         } catch (Exception e) {
             logger.debug("Error performing read", e);
         }
