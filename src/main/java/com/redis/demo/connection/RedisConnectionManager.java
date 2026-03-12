@@ -46,10 +46,6 @@ public class RedisConnectionManager {
         this.writerRegion = extractRegion(endpoint1);
         this.readerRegion = extractRegion(endpoint2);
 
-        // Initialize active regions to configured regions
-        this.activeWriterRegion = this.writerRegion;
-        this.activeReaderRegion = this.readerRegion;
-
         // Extract all regions
         this.allRegions = endpoints.stream()
                 .map(this::extractRegion)
@@ -57,6 +53,10 @@ public class RedisConnectionManager {
                 .toList();
 
         testConnections();
+
+        // Initialize active regions based on actual active endpoints after connection
+        this.activeWriterRegion = extractRegionFromEndpointString(writerClient.getActiveDatabaseEndpoint().toString());
+        this.activeReaderRegion = extractRegionFromEndpointString(readerClient.getActiveDatabaseEndpoint().toString());
     }
 
     /**
