@@ -9,7 +9,6 @@ redis.endpoint.west=default:password@redis-west.example.com:6379
 
 # Writer Configuration
 writer.interval.ms=1000
-writer.key.prefix=latency
 
 # Value size (total size including timestamp)
 # Timestamp format: "millis.nanos_" = ~21 bytes

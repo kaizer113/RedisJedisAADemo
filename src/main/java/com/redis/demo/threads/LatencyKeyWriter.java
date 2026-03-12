@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class LatencyKeyWriter implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(LatencyKeyWriter.class);
 
+    private static final String KEY_PREFIX = "latency";
+
     // Session ID: seconds of current minute (0-59) to avoid reading stale keys from previous runs
     private static final String SESSION_ID = String.valueOf(LocalDateTime.now().getSecond());
 
@@ -54,7 +56,7 @@ public class LatencyKeyWriter implements Runnable {
             try {
                 long currentCount = counter.incrementAndGet();
                 // Format: latency<SESSION_ID>:<counter>
-                String key = config.getWriterKeyPrefix() + SESSION_ID + ":" + currentCount;
+                String key = KEY_PREFIX + SESSION_ID + ":" + currentCount;
 
                 // Create value with high-precision timestamp + pre-generated padding
                 String value = createValue();

@@ -71,10 +71,6 @@ public class ConfigManager {
         return Long.parseLong(properties.getProperty("writer.interval.ms", "1000"));
     }
     
-    public String getWriterKeyPrefix() {
-        return properties.getProperty("writer.key.prefix", "latency");
-    }
-    
     public int getValueSize() {
         return Integer.parseInt(properties.getProperty("value.size", "500"));
     }
