@@ -6,9 +6,9 @@
 set -e
 
 # Colors for output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
+GREEN='\033[0;92m'
+RED='\033[1;31m'  # Bright/Bold Red
+YELLOW='\033[1;93m'  # Bright Yellow
 NC='\033[0m' # No Color
 
 # Check if running as root
@@ -41,19 +41,12 @@ if [ -z "$HOSTNAME" ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}Restoring network traffic to Redis East endpoint...${NC}"
-echo ""
-echo "Endpoint: $EAST_ENDPOINT"
-echo "Hostname: $HOSTNAME"
-echo ""
-echo "Command to execute:"
-echo -e "${GREEN}sudo iptables -D OUTPUT -d $HOSTNAME -j DROP${NC}"
-echo ""
+# Get timestamp
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
+# Display command with timestamp
+echo -e "${YELLOW}[$TIMESTAMP] ${GREEN}sudo iptables -D OUTPUT -d $HOSTNAME -j DROP${NC}"
 
 # Execute the iptables command
 iptables -D OUTPUT -d "$HOSTNAME" -j DROP
-
-echo -e "${GREEN}✓ Network traffic to $HOSTNAME is now RESTORED${NC}"
-echo ""
-echo "This will trigger failback to the East endpoint (if failback is enabled)."
 

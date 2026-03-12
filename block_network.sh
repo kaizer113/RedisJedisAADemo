@@ -6,8 +6,8 @@
 set -e
 
 # Colors for output
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
+RED='\033[1;31m'  # Bright/Bold Red
+YELLOW='\033[1;93m'  # Bright Yellow
 NC='\033[0m' # No Color
 
 # Check if running as root
@@ -40,20 +40,12 @@ if [ -z "$HOSTNAME" ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}Blocking network traffic to Redis East endpoint...${NC}"
-echo ""
-echo "Endpoint: $EAST_ENDPOINT"
-echo "Hostname: $HOSTNAME"
-echo ""
-echo "Command to execute:"
-echo -e "${RED}sudo iptables -A OUTPUT -d $HOSTNAME -j DROP${NC}"
-echo ""
+# Get timestamp
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
+# Display command with timestamp
+echo -e "${YELLOW}[$TIMESTAMP] ${RED}sudo iptables -A OUTPUT -d $HOSTNAME -j DROP${NC}"
 
 # Execute the iptables command
 iptables -A OUTPUT -d "$HOSTNAME" -j DROP
-
-echo -e "${RED}✓ Network traffic to $HOSTNAME is now BLOCKED${NC}"
-echo ""
-echo "This will trigger failover to the West endpoint."
-echo "To restore connectivity, run: ./fix_network.sh"
 

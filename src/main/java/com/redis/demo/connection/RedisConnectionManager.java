@@ -124,7 +124,9 @@ public class RedisConnectionManager {
                 .retryOnFailover(config.isRetryOnFailover())
                 // Failback configuration
                 .failbackSupported(config.isFailbackSupported())
-                .failbackCheckInterval(config.getFailbackCheckInterval());
+                .failbackCheckInterval(config.getFailbackCheckInterval())
+                // Initialization policy - allow starting with at least one endpoint available
+                .initializationPolicy(redis.clients.jedis.mcf.InitializationPolicy.BuiltIn.ONE_AVAILABLE);
 
         // Build and return MultiDbClient with failover callback
         return MultiDbClient.builder()
