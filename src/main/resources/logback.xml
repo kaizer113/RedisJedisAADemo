@@ -26,6 +26,10 @@
         <appender-ref ref="STDOUT_NO_STACK" />
     </logger>
 
+    <!-- Suppress Resilience4j retry and circuit breaker logs -->
+    <logger name="io.github.resilience4j.retry" level="OFF" />
+    <logger name="io.github.resilience4j.circuitbreaker" level="OFF" />
+
     <!-- Keep only essential demo messages at INFO level -->
     <logger name="com.redis.demo" level="INFO" />
 </configuration>
