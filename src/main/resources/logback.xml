@@ -27,9 +27,11 @@
     </logger>
 
     <!-- Suppress Resilience4j retry and circuit breaker logs -->
-    <logger name="io.github.resilience4j" level="OFF" />
-    <logger name="io.github.resilience4j.retry" level="OFF" />
-    <logger name="io.github.resilience4j.circuitbreaker" level="OFF" />
+    <logger name="io.github.resilience4j" level="OFF" additivity="false" />
+    <logger name="io.github.resilience4j.retry" level="OFF" additivity="false" />
+    <logger name="io.github.resilience4j.circuitbreaker" level="OFF" additivity="false" />
+    <logger name="io.github.resilience4j.retry.Retry" level="OFF" additivity="false" />
+    <logger name="io.github.resilience4j.circuitbreaker.CircuitBreaker" level="OFF" additivity="false" />
 
     <!-- Keep only essential demo messages at INFO level -->
     <logger name="com.redis.demo" level="INFO" />
