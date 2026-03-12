@@ -1,6 +1,11 @@
-# Redis Endpoints (comma-separated for Active-Active failover)
-# Format: [username]:[password]@host:port,[username]:[password]@host:port
-redis.endpoints=localhost:6379,localhost:6379
+# Redis Endpoints for Active-Active failover
+# Format: [username]:[password]@host:port
+redis.endpoint.east=default:password@redis-east.example.com:6379
+redis.endpoint.west=default:password@redis-west.example.com:6379
+
+# For local testing:
+#redis.endpoint.east=localhost:6379
+#redis.endpoint.west=localhost:6379
 
 # Writer Configuration
 writer.interval.ms=1000

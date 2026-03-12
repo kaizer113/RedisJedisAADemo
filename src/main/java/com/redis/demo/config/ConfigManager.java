@@ -54,11 +54,17 @@ public class ConfigManager {
     }
     
     public List<String> getRedisEndpoints() {
-        String endpoints = properties.getProperty("redis.endpoints");
-        if (endpoints == null || endpoints.trim().isEmpty()) {
-            throw new RuntimeException("redis.endpoints must be configured in redis.properties");
+        String eastEndpoint = properties.getProperty("redis.endpoint.east");
+        String westEndpoint = properties.getProperty("redis.endpoint.west");
+
+        if (eastEndpoint == null || eastEndpoint.trim().isEmpty()) {
+            throw new RuntimeException("redis.endpoint.east must be configured in redis.properties");
         }
-        return Arrays.asList(endpoints.split(","));
+        if (westEndpoint == null || westEndpoint.trim().isEmpty()) {
+            throw new RuntimeException("redis.endpoint.west must be configured in redis.properties");
+        }
+
+        return Arrays.asList(eastEndpoint, westEndpoint);
     }
     
     public long getWriterIntervalMs() {
