@@ -131,7 +131,13 @@ public class RedisConnectionManager {
                 .multiDbConfig(multiConfigBuilder.build())
                 .databaseSwitchListener(event -> {
                     String newEndpoint = event.getEndpoint().toString();
-                    logger.warn("⚠️  FAILOVER EVENT - {} switched to: {} - Reason: {}",
+
+                    // ANSI color codes: RED for failover warning
+                    String RED = "\u001B[31m";
+                    String GREEN = "\u001B[32m";
+                    String RESET = "\u001B[0m";
+
+                    logger.warn(RED + "⚠️  FAILOVER EVENT - {} switched to: {} - Reason: {}" + RESET,
                                clientType,
                                newEndpoint,
                                event.getReason());
@@ -141,10 +147,10 @@ public class RedisConnectionManager {
                     String newRegion = extractRegionFromEndpointString(newEndpoint);
                     if (isWriter) {
                         activeWriterRegion = newRegion;
-                        logger.info("Active writer region updated to: {}", newRegion);
+                        logger.info(GREEN + "✓ Active writer region updated to: {}" + RESET, newRegion);
                     } else {
                         activeReaderRegion = newRegion;
-                        logger.info("Active reader region updated to: {}", newRegion);
+                        logger.info(GREEN + "✓ Active reader region updated to: {}" + RESET, newRegion);
                     }
                 })
                 .build();
