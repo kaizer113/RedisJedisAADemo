@@ -18,6 +18,8 @@ metrics.interval.seconds=15
 background.load.enabled=true
 background.load.threads=14
 background.load.read.write.ratio=10
+# Sleep between operations in nanoseconds (100,000 ns = 0.1ms = ~10K ops/sec per thread)
+background.load.sleep.nanos=100000
 
 # TTL Configuration
 key.ttl.seconds=300

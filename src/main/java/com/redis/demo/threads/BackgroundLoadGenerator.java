@@ -45,29 +45,29 @@ public class BackgroundLoadGenerator implements Runnable {
     @Override
     public void run() {
         int readWriteRatio = config.getBackgroundLoadReadWriteRatio();
+        int sleepNanos = config.getBackgroundLoadSleepNanos();
         int operationCounter = 0;
-        
+
         while (running.get()) {
             try {
                 operationCounter++;
-                
+
                 // Determine if this should be a read or write based on ratio
                 boolean shouldWrite = (operationCounter % (readWriteRatio + 1)) == 0;
-                
+
                 if (shouldWrite) {
                     performWrite();
                 } else {
                     performRead();
                 }
-                
+
                 // Small delay to control throughput
-                // Reduce sleep for higher throughput: 1ms = ~1K ops/sec, 0.1ms = ~10K ops/sec
-                //Thread.sleep(0, 100_000);  // 0.1ms = 100,000 nanoseconds
-                
-            //} catch (InterruptedException e) {
-            //    logger.info("BackgroundLoadGenerator interrupted");
-            //    Thread.currentThread().interrupt();
-            //    break;
+                // Configurable sleep: 100,000 ns = 0.1ms = ~10K ops/sec per thread
+                Thread.sleep(0, sleepNanos);
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             } catch (Exception e) {
                 logger.error("Error in background load generation", e);
                 // Continue running even if there's an error

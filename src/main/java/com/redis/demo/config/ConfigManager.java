@@ -88,6 +88,10 @@ public class ConfigManager {
     public int getBackgroundLoadReadWriteRatio() {
         return Integer.parseInt(properties.getProperty("background.load.read.write.ratio", "10"));
     }
+
+    public int getBackgroundLoadSleepNanos() {
+        return Integer.parseInt(properties.getProperty("background.load.sleep.nanos", "100000"));
+    }
     
     public int getKeyTtlSeconds() {
         return Integer.parseInt(properties.getProperty("key.ttl.seconds", "300"));
