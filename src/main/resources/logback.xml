@@ -6,13 +6,25 @@
         </encoder>
     </appender>
 
+    <!-- Appender for exceptions without stack traces -->
+    <appender name="STDOUT_NO_STACK" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
     <!-- Default log level -->
     <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 
-    <!-- Suppress verbose Jedis internal logging -->
-    <logger name="redis.clients.jedis" level="WARN" />
+    <!-- Suppress verbose Jedis internal logging and hide stack traces -->
+    <logger name="redis.clients.jedis" level="ERROR" additivity="false">
+        <appender-ref ref="STDOUT_NO_STACK" />
+    </logger>
 
     <!-- Keep only essential demo messages at INFO level -->
     <logger name="com.redis.demo" level="INFO" />

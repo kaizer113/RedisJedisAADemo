@@ -16,8 +16,8 @@ metrics.interval.seconds=15
 
 # Background Load Configuration
 background.load.enabled=true
-background.load.threads=10
-background.load.read.write.ratio=100
+background.load.threads=14
+background.load.read.write.ratio=10
 
 # TTL Configuration
 key.ttl.seconds=300
@@ -44,7 +44,7 @@ failover.retry.max.attempts=3
 failover.delay.between.attempts=12000
 
 # Failover - Retry failed commands during failover (true/false)
-failover.retry.on.failover=false
+failover.retry.on.failover=true
 
 # Failback - Check interval in milliseconds to detect recovery
 failover.failback.check.interval=120000

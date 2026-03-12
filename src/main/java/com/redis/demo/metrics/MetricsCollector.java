@@ -162,10 +162,14 @@ public class MetricsCollector implements Runnable {
             writerLatency = connectionManager.measureWriterLatency();
             readerLatency = connectionManager.measureReaderLatency();
 
+            // Show active regions (may differ from configured after failover)
+            String activeWriter = connectionManager.getActiveWriterRegion();
+            String activeReader = connectionManager.getActiveReaderRegion();
+
             System.out.printf("Writer Region:   %s (client latency: %.2f ms)%n",
-                            connectionManager.getWriterRegion(), writerLatency);
+                            activeWriter, writerLatency);
             System.out.printf("Reader Region:   %s (client latency: %.2f ms)%n",
-                            connectionManager.getReaderRegion(), readerLatency);
+                            activeReader, readerLatency);
             System.out.println("-".repeat(80));
         }
 

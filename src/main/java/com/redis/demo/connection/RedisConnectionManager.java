@@ -26,6 +26,10 @@ public class RedisConnectionManager {
     private final List<String> allEndpoints;
     private final List<String> allRegions;
 
+    // Track active regions after failover
+    private volatile String activeWriterRegion;
+    private volatile String activeReaderRegion;
+
     public RedisConnectionManager(ConfigManager config) {
         this.config = config;
 
@@ -41,6 +45,10 @@ public class RedisConnectionManager {
         this.readerClient = createMultiDbClient(endpoint2, endpoint1, false); // Reader prefers endpoint2
         this.writerRegion = extractRegion(endpoint1);
         this.readerRegion = extractRegion(endpoint2);
+
+        // Initialize active regions to configured regions
+        this.activeWriterRegion = this.writerRegion;
+        this.activeReaderRegion = this.readerRegion;
 
         // Extract all regions
         this.allRegions = endpoints.stream()
@@ -122,10 +130,22 @@ public class RedisConnectionManager {
         return MultiDbClient.builder()
                 .multiDbConfig(multiConfigBuilder.build())
                 .databaseSwitchListener(event -> {
+                    String newEndpoint = event.getEndpoint().toString();
                     logger.warn("⚠️  FAILOVER EVENT - {} switched to: {} - Reason: {}",
                                clientType,
-                               event.getEndpoint(),
+                               newEndpoint,
                                event.getReason());
+
+                    // Update active region tracking
+                    // Extract region from the endpoint string (format: host:port)
+                    String newRegion = extractRegionFromEndpointString(newEndpoint);
+                    if (isWriter) {
+                        activeWriterRegion = newRegion;
+                        logger.info("Active writer region updated to: {}", newRegion);
+                    } else {
+                        activeReaderRegion = newRegion;
+                        logger.info("Active reader region updated to: {}", newRegion);
+                    }
                 })
                 .build();
     }
@@ -145,6 +165,24 @@ public class RedisConnectionManager {
             this.password = password;
             this.useSsl = useSsl;
         }
+    }
+
+    /**
+     * Extract region from endpoint string by matching the host against configured endpoints.
+     * @param endpointString The endpoint string from failover event (format: "host:port")
+     * @return The region name, or "unknown" if not found
+     */
+    private String extractRegionFromEndpointString(String endpointString) {
+        // Extract just the host from "host:port"
+        String host = endpointString.contains(":") ? endpointString.split(":")[0] : endpointString;
+
+        // Match against configured endpoints
+        for (String endpoint : allEndpoints) {
+            if (endpoint.contains(host)) {
+                return extractRegion(endpoint);
+            }
+        }
+        return "unknown";
     }
 
     /**
@@ -222,6 +260,22 @@ public class RedisConnectionManager {
 
     public String getReaderRegion() {
         return readerRegion;
+    }
+
+    /**
+     * Get the currently active writer region (may differ from configured writer after failover).
+     * @return the region name of the currently active writer endpoint
+     */
+    public String getActiveWriterRegion() {
+        return activeWriterRegion;
+    }
+
+    /**
+     * Get the currently active reader region (may differ from configured reader after failover).
+     * @return the region name of the currently active reader endpoint
+     */
+    public String getActiveReaderRegion() {
+        return activeReaderRegion;
     }
 
     public List<String> getAllRegions() {
