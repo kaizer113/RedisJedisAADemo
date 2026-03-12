@@ -133,16 +133,23 @@ public class RedisConnectionManager {
                 .multiDbConfig(multiConfigBuilder.build())
                 .databaseSwitchListener(event -> {
                     String newEndpoint = event.getEndpoint().toString();
+                    String reason = event.getReason().toString();
 
-                    // ANSI color codes: RED for failover warning
+                    // ANSI color codes: GREEN for failback (recovery), RED for failover (failure)
                     String RED = "\u001B[31m";
                     String GREEN = "\u001B[32m";
                     String RESET = "\u001B[0m";
 
-                    logger.warn(RED + "⚠️  FAILOVER EVENT - {} switched to: {} - Reason: {}" + RESET,
+                    // Use GREEN for FAILBACK (recovery), RED for FAILOVER (failure)
+                    boolean isFailback = reason.equals("FAILBACK");
+                    String color = isFailback ? GREEN : RED;
+                    String icon = isFailback ? "✓" : "⚠️";
+                    String eventType = isFailback ? "FAILBACK EVENT" : "FAILOVER EVENT";
+
+                    logger.warn(color + icon + "  " + eventType + " - {} switched to: {} - Reason: {}" + RESET,
                                clientType,
                                newEndpoint,
-                               event.getReason());
+                               reason);
 
                     // Update active region tracking
                     // Extract region from the endpoint string (format: host:port)
