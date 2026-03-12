@@ -27,6 +27,7 @@
     </logger>
 
     <!-- Suppress Resilience4j retry and circuit breaker logs -->
+    <logger name="io.github.resilience4j" level="OFF" />
     <logger name="io.github.resilience4j.retry" level="OFF" />
     <logger name="io.github.resilience4j.circuitbreaker" level="OFF" />
 
