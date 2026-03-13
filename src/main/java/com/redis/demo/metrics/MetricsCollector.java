@@ -200,10 +200,10 @@ public class MetricsCollector implements Runnable {
             long writesDelta = currentWrites - lastWriteCount;
 
             System.out.println();
-            System.out.printf("Reads:       %.1f/sec%n", (double) readsDelta / intervalSeconds);
-            System.out.printf("Writes:      %.1f/sec%n", (double) writesDelta / intervalSeconds);
-            System.out.printf("Total ops:   %.1f/sec%n",
-                            (double) (readsDelta + writesDelta) / intervalSeconds);
+            System.out.printf("Reads:       %d/sec%n", readsDelta / intervalSeconds);
+            System.out.printf("Writes:      %d/sec%n", writesDelta / intervalSeconds);
+            System.out.printf("Total ops:   %d/sec%n",
+                            (readsDelta + writesDelta) / intervalSeconds);
 
             // Update last counts for next interval
             lastReadCount = currentReads;
