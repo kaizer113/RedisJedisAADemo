@@ -60,8 +60,6 @@ public class MetricsCollector implements Runnable {
     
     @Override
     public void run() {
-        logger.info("MetricsCollector started - reporting every {} seconds", intervalSeconds);
-        
         while (running.get()) {
             try {
                 Thread.sleep(intervalSeconds * 1000L);
