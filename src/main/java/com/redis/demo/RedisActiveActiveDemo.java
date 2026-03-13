@@ -57,7 +57,8 @@ public class RedisActiveActiveDemo {
         writerThread.start();
 
         // Start latency key reader (shares pendingKeys queue with writer)
-        reader = new LatencyKeyReader(connectionManager.getReaderClient(), config, metricsCollector, pendingKeys);
+        reader = new LatencyKeyReader(connectionManager.getReaderClient(), config, metricsCollector,
+                                     connectionManager, pendingKeys);
         readerThread = new Thread(reader, "LatencyKeyReader");
         readerThread.start();
 

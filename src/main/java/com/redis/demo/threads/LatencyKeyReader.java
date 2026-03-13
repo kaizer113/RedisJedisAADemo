@@ -1,6 +1,7 @@
 package com.redis.demo.threads;
 
 import com.redis.demo.config.ConfigManager;
+import com.redis.demo.connection.RedisConnectionManager;
 import com.redis.demo.metrics.MetricsCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,16 +25,18 @@ public class LatencyKeyReader implements Runnable {
     private final UnifiedJedis jedis;
     private final ConfigManager config;
     private final MetricsCollector metricsCollector;
+    private final RedisConnectionManager connectionManager;
     private final AtomicBoolean running;
     private final ConcurrentLinkedQueue<String> pendingKeys;
     private long processedCount;
     private final AtomicLong readCount; // Track total reads for ops/sec calculation
 
     public LatencyKeyReader(UnifiedJedis jedis, ConfigManager config, MetricsCollector metricsCollector,
-                           ConcurrentLinkedQueue<String> pendingKeys) {
+                           RedisConnectionManager connectionManager, ConcurrentLinkedQueue<String> pendingKeys) {
         this.jedis = jedis;
         this.config = config;
         this.metricsCollector = metricsCollector;
+        this.connectionManager = connectionManager;
         this.running = new AtomicBoolean(true);
         this.pendingKeys = pendingKeys;
         this.processedCount = 0;
@@ -113,6 +116,14 @@ public class LatencyKeyReader implements Runnable {
     
     private long calculateReplicationLag(String value) {
         try {
+            // If writer and reader are using the same region, replication lag is 0
+            String activeWriterRegion = connectionManager.getActiveWriterRegion();
+            String activeReaderRegion = connectionManager.getActiveReaderRegion();
+
+            if (activeWriterRegion != null && activeWriterRegion.equals(activeReaderRegion)) {
+                return 0;
+            }
+
             // Extract timestamp from value (format: millis.nanos_padding)
             String[] parts = value.split("_", 2);
             String timestampPart = parts[0];
