@@ -200,10 +200,10 @@ public class MetricsCollector implements Runnable {
             long writesDelta = currentWrites - lastWriteCount;
 
             System.out.println();
-            System.out.printf("Reads:       %d/sec%n", readsDelta / intervalSeconds);
-            System.out.printf("Writes:      %d/sec%n", writesDelta / intervalSeconds);
-            System.out.printf("Total ops:   %d/sec%n",
-                            (readsDelta + writesDelta) / intervalSeconds);
+            System.out.printf("Reads:       %s /sec%n", formatWithSpaces(readsDelta / intervalSeconds));
+            System.out.printf("Writes:      %s /sec%n", formatWithSpaces(writesDelta / intervalSeconds));
+            System.out.printf("Total ops:   %s /sec%n",
+                            formatWithSpaces((readsDelta + writesDelta) / intervalSeconds));
 
             // Update last counts for next interval
             lastReadCount = currentReads;
@@ -211,6 +211,25 @@ public class MetricsCollector implements Runnable {
         }
 
         System.out.println("=".repeat(80) + "\n");
+    }
+
+    /**
+     * Format a number with spaces as thousand separators for better readability.
+     * Example: 15272 -> "15 272"
+     */
+    private String formatWithSpaces(long number) {
+        String numStr = String.valueOf(number);
+        StringBuilder result = new StringBuilder();
+        int length = numStr.length();
+
+        for (int i = 0; i < length; i++) {
+            if (i > 0 && (length - i) % 3 == 0) {
+                result.append(' ');
+            }
+            result.append(numStr.charAt(i));
+        }
+
+        return result.toString();
     }
     
     public void stop() {
