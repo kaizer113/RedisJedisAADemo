@@ -372,7 +372,7 @@ public class RedisConnectionManager {
 
     private String extractRegion(String endpoint) {
         // Extract region from endpoint like: default:pass@redis-11036.mc2103-0.us-east-1-mz.ec2.cloud.rlrcp.com:11036
-        // Return simplified format like: us-east-1-mz
+        // Return simplified format like: us-east-1 (without -mz suffix)
         try {
             // Remove auth part if present
             String hostPart = endpoint.contains("@") ? endpoint.split("@")[1] : endpoint;
@@ -380,19 +380,19 @@ public class RedisConnectionManager {
             // Extract hostname (before port)
             String hostname = hostPart.split(":")[0];
 
-            // Look for pattern like "us-east-1-mz" or "us-east-2-mz"
+            // Look for pattern like "us-east-1-mz" or "us-east-2-mz" and remove -mz suffix
             if (hostname.contains("us-east-1-mz")) {
-                return "us-east-1-mz";
+                return "us-east-1";
             } else if (hostname.contains("us-east-2-mz")) {
-                return "us-east-2-mz";
+                return "us-east-2";
             } else if (hostname.contains("localhost")) {
                 return "localhost";
             } else {
-                // Generic extraction: find region pattern
+                // Generic extraction: find region pattern and remove -mz suffix
                 String[] parts = hostname.split("\\.");
                 for (String part : parts) {
                     if (part.contains("-mz") || part.contains("east") || part.contains("west")) {
-                        return part;
+                        return part.replace("-mz", "");
                     }
                 }
                 return hostname; // Fallback to full hostname

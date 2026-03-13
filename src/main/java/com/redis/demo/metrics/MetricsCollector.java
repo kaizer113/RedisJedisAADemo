@@ -150,7 +150,7 @@ public class MetricsCollector implements Runnable {
                 String healthStatus = isHealthy ? "✅ HEALTHY" : "❌ UNHEALTHY";
                 System.out.printf("  %s: %s%n", region, healthStatus);
             }
-            System.out.println("-".repeat(80));
+            System.out.println();
         }
 
         // Measure client latencies once
@@ -166,53 +166,27 @@ public class MetricsCollector implements Runnable {
             String activeWriter = connectionManager.getActiveWriterRegion();
             String activeReader = connectionManager.getActiveReaderRegion();
 
+            // Load Generator uses the Writer client
+            System.out.printf("Load Generator:  %s (latency: %.2f ms)%n",
+                            activeWriter, writerLatency);
             System.out.printf("Writer Region:   %s (client latency: %.2f ms)%n",
                             activeWriter, writerLatency);
             System.out.printf("Reader Region:   %s (client latency: %.2f ms)%n",
                             activeReader, readerLatency);
-            System.out.println("-".repeat(80));
+            System.out.println();
         }
 
-        System.out.printf("Sample Count:    %d measurements%n", sampleCount);
-        System.out.printf("Average Lag:     %.2f ms%n", metrics.average);
-        System.out.printf("P95 Lag:         %d ms%n", metrics.p95);
-        System.out.printf("Max Lag:         %d ms%n", metrics.max);
-        System.out.printf("Min Lag:         %d ms%n", metrics.min);
-
-        // Calculate estimated true replication lag (subtract network overhead)
+        // Calculate network overhead and subtract from all metrics
+        double networkOverhead = 0.0;
         if (connectionManager != null && writerLatency > 0 && readerLatency > 0) {
-            double totalNetworkOverhead = writerLatency + readerLatency;
-            double estimatedTrueReplicationLag = Math.max(0, metrics.average - totalNetworkOverhead);
-
-            System.out.println("-".repeat(80));
-            System.out.printf("Network Overhead: %.2f ms%n",
-                            totalNetworkOverhead);
-            System.out.printf("Est. True Lag:    %.2f ms%n",
-                            estimatedTrueReplicationLag);
+            networkOverhead = writerLatency + readerLatency;
         }
 
-        // Display latency key reader/writer statistics
-        if (latencyKeyReader != null || latencyKeyWriter != null) {
-            System.out.println("-".repeat(80));
-            System.out.println("LATENCY MEASUREMENT THREAD STATISTICS");
-            System.out.println("-".repeat(80));
-
-            if (latencyKeyWriter != null) {
-                long currentWriterCount = latencyKeyWriter.getWriteCount();
-                long writerDelta = currentWriterCount - lastLatencyWriterCount;
-                System.out.printf("Latency Writer:  %.1f writes/sec%n",
-                                (double) writerDelta / intervalSeconds);
-                lastLatencyWriterCount = currentWriterCount;
-            }
-
-            if (latencyKeyReader != null) {
-                long currentReaderCount = latencyKeyReader.getReadCount();
-                long readerDelta = currentReaderCount - lastLatencyReaderCount;
-                System.out.printf("Latency Reader:  %.1f reads/sec%n",
-                                (double) readerDelta / intervalSeconds);
-                lastLatencyReaderCount = currentReaderCount;
-            }
-        }
+        // Display lag metrics with network overhead already subtracted
+        System.out.printf("Average Lag:     %.2f ms%n", Math.max(0, metrics.average - networkOverhead));
+        System.out.printf("P95 Lag:         %.2f ms%n", Math.max(0, metrics.p95 - networkOverhead));
+        System.out.printf("Max Lag:         %.2f ms%n", Math.max(0, metrics.max - networkOverhead));
+        System.out.printf("Min Lag:         %.2f ms%n", Math.max(0, metrics.min - networkOverhead));
 
         // Display background load statistics if available
         if (backgroundLoadGenerators != null && !backgroundLoadGenerators.isEmpty()) {
@@ -227,11 +201,6 @@ public class MetricsCollector implements Runnable {
             long readsDelta = currentReads - lastReadCount;
             long writesDelta = currentWrites - lastWriteCount;
 
-            System.out.println("-".repeat(80));
-            System.out.println("BACKGROUND LOAD STATISTICS");
-            System.out.println("-".repeat(80));
-            System.out.printf("Total Reads:     %,d%n", currentReads);
-            System.out.printf("Total Writes:    %,d%n", currentWrites);
             System.out.printf("Reads:       %.1f/sec%n", (double) readsDelta / intervalSeconds);
             System.out.printf("Writes:      %.1f/sec%n", (double) writesDelta / intervalSeconds);
             System.out.printf("Total ops:   %.1f/sec%n",
