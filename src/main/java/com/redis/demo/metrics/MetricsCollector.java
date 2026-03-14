@@ -167,9 +167,9 @@ public class MetricsCollector implements Runnable {
             // Load Generator uses the Writer client
             System.out.printf("Application load:  %s (latency: %.2f ms)%n",
                             activeWriter, writerLatency);
-            System.out.printf("Writer Region:   %s (latency: %.2f ms)%n",
+            System.out.printf("Writer Region:     %s (latency: %.2f ms)%n",
                             activeWriter, writerLatency);
-            System.out.printf("Reader Region:   %s (latency: %.2f ms)%n",
+            System.out.printf("Reader Region:     %s (latency: %.2f ms)%n",
                             activeReader, readerLatency);
             System.out.println();
         }
@@ -201,7 +201,7 @@ public class MetricsCollector implements Runnable {
 
             System.out.println();
             System.out.printf("Reads:       %s /sec%n", formatWithSpaces(readsDelta / intervalSeconds));
-            System.out.printf("Writes:      %s /sec%n", formatWithSpaces(writesDelta / intervalSeconds));
+            System.out.printf("Writes:       %s /sec%n", formatWithSpaces(writesDelta / intervalSeconds));
             System.out.printf("Total ops:   %s /sec%n",
                             formatWithSpaces((readsDelta + writesDelta) / intervalSeconds));
 
