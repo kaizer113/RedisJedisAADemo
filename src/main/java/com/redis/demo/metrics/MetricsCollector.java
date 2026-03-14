@@ -165,11 +165,11 @@ public class MetricsCollector implements Runnable {
             String activeReader = connectionManager.getActiveReaderRegion();
 
             // Load Generator uses the Writer client
-            System.out.printf("Load Generator:  %s (latency: %.2f ms)%n",
+            System.out.printf("Application load:  %s (latency: %.2f ms)%n",
                             activeWriter, writerLatency);
-            System.out.printf("Writer Region:   %s (client latency: %.2f ms)%n",
+            System.out.printf("Writer Region:   %s (latency: %.2f ms)%n",
                             activeWriter, writerLatency);
-            System.out.printf("Reader Region:   %s (client latency: %.2f ms)%n",
+            System.out.printf("Reader Region:   %s (latency: %.2f ms)%n",
                             activeReader, readerLatency);
             System.out.println();
         }
