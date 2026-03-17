@@ -55,7 +55,7 @@ public class RedisConfigSpring {
     }
 
     /**
-     * Writer JedisConnectionFactory - exact replica of customer's configuration
+     * Writer JedisConnectionFactory - optimized pool configuration
      */
     @Bean(name = "writerJedisConnectionFactory")
     @Primary
@@ -67,10 +67,13 @@ public class RedisConfigSpring {
         redisStandaloneConfiguration.setPassword(writerPassword);
         redisStandaloneConfiguration.setUsername(writerUsername);
 
-        // Customer's exact pool configuration
+        // Optimized pool configuration for connection reuse
         JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxIdle(0);
-        poolConfig.setMaxTotal(100);
+        poolConfig.setMaxTotal(500);
+        poolConfig.setMaxIdle(100);
+        poolConfig.setMinIdle(20);
+        poolConfig.setBlockWhenExhausted(true);
+        poolConfig.setTestWhileIdle(true);
 
         JedisClientConfiguration clientConfig = JedisClientConfiguration.builder()
             .usePooling()
@@ -94,7 +97,7 @@ public class RedisConfigSpring {
     }
 
     /**
-     * Reader JedisConnectionFactory - exact replica of customer's configuration
+     * Reader JedisConnectionFactory - optimized pool configuration
      */
     @Bean(name = "readerJedisConnectionFactory")
     @ConditionalOnMissingBean(name = "readerJedisConnectionFactory")
@@ -105,10 +108,13 @@ public class RedisConfigSpring {
         redisStandaloneConfiguration.setPassword(readerPassword);
         redisStandaloneConfiguration.setUsername(readerUsername);
 
-        // Customer's exact pool configuration
+        // Optimized pool configuration for connection reuse
         JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxIdle(0);
-        poolConfig.setMaxTotal(100);
+        poolConfig.setMaxTotal(500);
+        poolConfig.setMaxIdle(100);
+        poolConfig.setMinIdle(20);
+        poolConfig.setBlockWhenExhausted(true);
+        poolConfig.setTestWhileIdle(true);
 
         JedisClientConfiguration clientConfig = JedisClientConfiguration.builder()
             .usePooling()
