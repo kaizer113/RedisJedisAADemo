@@ -18,7 +18,7 @@ if [ "$1" == "rebuild" ]; then
     echo "✅ Build successful"
     echo ""
 # Build the project if JAR doesn't exist
-elif [ ! -f "target/jedis-active-active-1.0.0.jar" ]; then
+elif [ ! -f "target/DemoActiveActive.jar" ]; then
     echo "Building project..."
     mvn clean package -q
     if [ $? -ne 0 ]; then
@@ -34,5 +34,5 @@ echo "Starting demo..."
 echo "Press Ctrl+C to stop"
 echo ""
 
-java -jar target/jedis-active-active-1.0.0.jar
+java -jar target/DemoActiveActive.jar
 
