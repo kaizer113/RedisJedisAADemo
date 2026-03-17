@@ -29,8 +29,16 @@ elif [ ! -f "target/DemoSpring.jar" ]; then
     echo ""
 fi
 
+# Check if config file exists
+if [ ! -f "redis-spring.properties" ]; then
+    echo "⚠️  Warning: redis-spring.properties not found in current directory"
+    echo "   Using default configuration from JAR"
+    echo ""
+fi
+
 # Run the application
 echo "Starting Spring Data demo..."
+echo "💡 Tip: Edit redis-spring.properties to change configuration without rebuilding"
 echo "Press Ctrl+C to stop"
 echo ""
 
