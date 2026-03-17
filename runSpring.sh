@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Redis Spring Data Demo Runner Script
+
+echo "=========================================="
+echo "Redis Spring Data Replication Demo"
+echo "=========================================="
+echo ""
+
+# Check for rebuild argument
+if [ "$1" == "rebuild" ]; then
+    echo "Rebuilding project..."
+    mvn clean package -q
+    if [ $? -ne 0 ]; then
+        echo "❌ Build failed"
+        exit 1
+    fi
+    echo "✅ Build successful"
+    echo ""
+# Build the project if JAR doesn't exist
+elif [ ! -f "target/DemoSpring.jar" ]; then
+    echo "Building project..."
+    mvn clean package -q
+    if [ $? -ne 0 ]; then
+        echo "❌ Build failed"
+        exit 1
+    fi
+    echo "✅ Build successful"
+    echo ""
+fi
+
+# Run the application
+echo "Starting Spring Data demo..."
+echo "Press Ctrl+C to stop"
+echo ""
+
+java -jar target/DemoSpring.jar
+

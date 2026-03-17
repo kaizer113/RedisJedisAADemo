@@ -21,6 +21,7 @@
         <slf4j.version>2.0.9</slf4j.version>
         <logback.version>1.4.14</logback.version>
         <resilience4j.version>1.7.1</resilience4j.version>
+        <spring.boot.version>3.2.0</spring.boot.version>
     </properties>
 
     <dependencies>
@@ -51,6 +52,20 @@
             <artifactId>resilience4j-all</artifactId>
             <version>${resilience4j.version}</version>
         </dependency>
+
+        <!-- Spring Boot Starter (for OSS demo) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
+        <!-- Spring Data Redis (for OSS demo with JedisConnectionFactory) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -66,21 +81,50 @@
                 </configuration>
             </plugin>
 
-            <!-- Maven Shade Plugin for creating executable JAR -->
+            <!-- Maven Shade Plugin for creating executable JARs -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.5.1</version>
                 <executions>
+                    <!-- Build Active-Active Demo JAR -->
                     <execution>
+                        <id>active-active-demo</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <finalName>DemoActiveActive</finalName>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.redis.demo.RedisActiveActiveDemo</mainClass>
+                                </transformer>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                    <!-- Build OSS Demo JAR -->
+                    <execution>
+                        <id>oss-demo</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>DemoSpring</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.redis.demo.spring.RedisDemoSpring</mainClass>
                                 </transformer>
                             </transformers>
                             <filters>
