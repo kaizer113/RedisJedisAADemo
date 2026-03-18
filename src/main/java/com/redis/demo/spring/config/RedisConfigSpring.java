@@ -17,6 +17,7 @@ import redis.clients.jedis.JedisPoolConfig;
  * Mirrors customer's exact configuration pattern with JedisConnectionFactory and RedisStandaloneConfiguration.
  */
 @Configuration
+@SuppressWarnings("deprecation")
 public class RedisConfigSpring {
 
     @Value("${redis.endpoint.east1.host}")
